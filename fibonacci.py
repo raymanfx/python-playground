@@ -1,43 +1,55 @@
 from timeit import default_timer as timer
+import sys
 
-verbose = 0
+verbose = 1
 
 def myprint(x):
-	if (verbose):
-		print(x)
+  if (verbose):
+    print(x)
 
-def timed_func(func, arg):
-	t_start = timer()
-	func(arg)
-	t_end = timer()
-	return (t_end - t_start)
+def timed_func(func, *args):
+  t_start = timer()
+  myprint("Calling {} with arguments: {}".format(func, *args))
+  func(*args)
+  t_end = timer()
+  return (t_end - t_start)
 
 def fiboRec(x):
-	first = 1
-	second = 2
-	if (x <= 2):
-		return x
-	else:
-		result = fiboRec(x - 1) + fiboRec(x - 2)
-		return result
+  index = int(x)
+  first = 0
+  second = 1
+  if (index <= 1):
+    return index
+  else:
+    result = fiboRec(index - 1) + fiboRec(index - 2)
+    return result
 
 def fiboIt(x):
-	first = 1
-	second = 2
-	if (x <= 2):
-		return x
-	else:
-		current = second
-		index = 2
-		while (index < x):
-			current = first + second
-			first = second
-			second = current
-			index = index + 1
-		return current
+  index = int(x)
+  first = 0
+  second = 1
+  if (index <= 1):
+    return index
+  else:
+    current = second
+    new_index = 1
+    while (new_index < index):
+      current = first + second
+      first = second
+      second = current
+      new_index = new_index + 1
+    myprint("fiboIt: returning result: {}".format(current))
+    return current
+
+
+if len(sys.argv) != 2:
+  print("usage: python fibonacci.py <index>")
+  sys.exit()
+
+fiboIndex = sys.argv[1]
 
 # Test
-time = timed_func(fiboRec, 30)
-print("{}{}".format("TOTAL EXECUTION TIME - recursive (ms): ", time * 1000))
-time = timed_func(fiboIt, 30)
+#time = timed_func(fiboRec, fiboIndex)
+#print("{}{}".format("TOTAL EXECUTION TIME - recursive (ms): ", time * 1000))
+time = timed_func(fiboIt, fiboIndex)
 print("{}{}".format("TOTAL EXECUTION TIME - iterative (ms): ", time * 1000))
