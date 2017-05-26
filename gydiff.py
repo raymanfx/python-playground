@@ -58,8 +58,8 @@ def find_missing_commits(local_path, local_revision, remote_path,
     compare_lines = compare_text.split('\n')
 
     # store metadata
-    base_commits = {}
-    compare_commits = {}
+    base_commits = collections.OrderedDict()
+    compare_commits = collections.OrderedDict()
 
     # fill dicts
     for line in base_lines:
