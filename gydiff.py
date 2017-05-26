@@ -45,43 +45,36 @@ def find_missing_commits(local_path, local_revision, remote_path,
                          remote_revision, num_commits, compare_path):
 
     # create a new dictionary we will write the missing keys and vals to
-    missing_commits = {}
-    missing_commits = collections.OrderedDict(missing_commits)
+    missing_commits = collections.OrderedDict()
 
     # read shortened git commit metadata
     base_cmd = "git -C {} log -n {} --no-merges --oneline {} {}".format(
         local_path, num_commits, local_revision, compare_path)
-    base_text = subprocess.check_output(base_cmd, shell=True)
+    base_text = subprocess.check_output(base_cmd.split(' ')).strip()
     base_lines = base_text.split('\n')
     compare_cmd = "git -C {} log -n {} --no-merges --oneline {} {}".format(
         remote_path, num_commits, remote_revision, compare_path)
-    compare_text = subprocess.check_output(compare_cmd, shell=True)
+    compare_text = subprocess.check_output(compare_cmd.split(' ')).strip()
     compare_lines = compare_text.split('\n')
 
-    # store metadata in ordered dicts
+    # store metadata
     base_commits = {}
-    base_commits = collections.OrderedDict(base_commits)
     compare_commits = {}
-    compare_commits = collections.OrderedDict(compare_commits)
 
     # fill dicts
     for line in base_lines:
-        for i in range(0, len(line)):
-            if line[i] == ' ':
-                base_commits[line[:i]] = line[i+1:]
-                break
+        split_index = line.find(' ')
+        base_commits[line[:split_index]] = line[split_index:]
     for line in compare_lines:
-        for i in range(0, len(line)):
-            if line[i] == ' ':
-                compare_commits[line[:i]] = line[i+1:]
-                break
+        split_index = line.find(' ')
+        compare_commits[line[:split_index]] = line[split_index:]
 
     # compare commit hashes
     for commit_id in compare_commits.keys():
-        if commit_id not in base_commits:
+        if commit_id not in base_commits.keys():
             # check the msg header first
-            if not compare_commits[commit_id] in base_commits.viewvalues():
-                missing_commits[commit_id] = compare_commits.get(commit_id)
+            if compare_commits[commit_id] not in base_commits.values():
+                missing_commits[commit_id] = compare_commits[commit_id]
             else:
                 # regex pattern to remove change-id from body
                 pattern = re.compile(r"Change-Id: \w+")
@@ -94,23 +87,24 @@ def find_missing_commits(local_path, local_revision, remote_path,
                 base_body_cmd = ("git -C {} log -1"
                                  " --format='%an%n%ae%n%at%n%B' {}"
                                  .format(local_path, commit_id))
-                base_body_text = subprocess.check_output(base_body_cmd,
-                                                         shell=True)
-                base_body_text = pattern.sub("", base_body_text)
-                # remove trailing whitespace
-                base_body_text = base_body_text.rstrip()
+                base_body_text = subprocess.check_output(base_body_cmd
+                                                         .split(' '))
+                base_body_lines = pattern.sub("", base_body_text).split('\n')
+
                 compare_commit_id = get_key_from_val(
                     compare_commits, compare_commits[commit_id])
                 compare_body_cmd = ("git -C {} log -1"
                                     " --format='%an%n%ae%n%at%n%B' {}"
                                     .format(remote_path, compare_commit_id))
                 compare_body_text = subprocess.check_output(
-                    compare_body_cmd, shell=True)
-                compare_body_text = pattern.sub("", compare_body_text)
-                # remove trailing whitespace
-                compare_body_text = compare_body_text.rstrip()
-                if base_body_text is not compare_body_text:
-                    missing_commits[commit_id] = base_commits.get(commit_id)
+                    compare_body_cmd.split(' '))
+                compare_body_lines = pattern.sub("",
+                                                 compare_body_text).split('\n')
+                if set(base_body_lines) != set(compare_body_lines):
+                    print("NO MATCH:")
+                    print("1: " + base_body_text)
+                    print("2: " + compare_body_text)
+                    missing_commits[commit_id] = compare_commits[commit_id]
 
     return missing_commits
 
